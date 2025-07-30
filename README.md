@@ -28,7 +28,6 @@ Main screen:
 - Google Maps Embed API for map visualization
 - requests for API calls
 - python-dotenv for managing environment variables
-- pandas (for internal data handling)
 
 ## Installation
 
