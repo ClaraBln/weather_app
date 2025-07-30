@@ -3,19 +3,36 @@ from datetime import datetime
 import os
 import requests
 import streamlit as st
-import pandas as pd
 
 
-load_dotenv()  # Load the content of .env into the environnement 
+load_dotenv()  # Loads all environment variables from the .env file 
 
 class WeatherRequest():
+    """
+    Class to handle weather data retrieval from OpenWeatherMap API
+    for a given city and country code.
+    """
+    
     api_key = os.getenv('api_weather')
     
     def __init__(self, city_name, country_code):
+        """
+        Initialize with city and country code.
+
+        Args:
+            city_name (str): Name of the city.
+            country_code (str): Two-letter ISO country code.
+        """
         self.city_name = city_name
         self.country_code = country_code
     
     def get_coordinate(self):
+        """
+        Retrieve latitude and longitude for the given city and country code.
+
+        Returns:
+            tuple: (lat, lon) if successful, else None
+        """
         if not self.__class__.api_key:
             st.error("API key is missing.")
             return None
@@ -27,6 +44,7 @@ class WeatherRequest():
         except Exception as e:
             st.error(f"Connection error: {e}")
             return None
+        
         if r_coordinate.status_code == 401:
             st.error("API key is invalid or unauthorized.")
             return None
@@ -46,6 +64,13 @@ class WeatherRequest():
             return None
     
     def get_weather(self):
+        """
+        Fetch current weather data using OpenWeather One Call API.
+
+        Returns:
+            tuple: temperature, feels like, humidity, description,
+                   icon code, min temp, max temp
+        """
         lat, lon = self.get_coordinate()
         if lat is None or lon is None:
             return None
@@ -57,6 +82,7 @@ class WeatherRequest():
         except Exception as e:
             st.error(f"Weather API connection error: {e}")
             return None
+        
         if r_weather.status_code == 401:
             st.error("API key is invalid or unauthorized for weather.")
             return None
@@ -79,6 +105,13 @@ class WeatherRequest():
             return None
 
     def get_daily_forecast(self):
+        """
+        Retrieve a 5-day weather forecast using OpenWeatherMap API.
+        Forecasts are taken closest to 12 PM each day.
+
+        Returns:
+            list: Forecasts for up to 5 days as dictionaries, or None on failure
+        """
         lat, lon = self.get_coordinate()
         if lat is None or lon is None:
             return None
@@ -90,6 +123,7 @@ class WeatherRequest():
         except Exception as e:
             st.error(f"Weather API connection error: {e}")
             return None
+        
         if r_forecast.status_code == 401:
             st.error("API key is invalid or unauthorized for forecast.")
             return None
@@ -115,12 +149,29 @@ class WeatherRequest():
 
 
 class MapRequest:
+    """
+    Class to generate and display map centered on given coordinates
+    using Google Maps Embed API.
+    """
+    
     api_key = os.getenv('api_map')
     
     def __init__(self, weather_request):
+        """
+        Initialize with WeatherRequest object for coordinate access.
+
+        Args:
+            weather_request (WeatherRequest): Instance containing the city/country.
+        """
         self.weather_request = weather_request
     
     def get_coords(self):
+        """
+        Get coordinates from the WeatherRequest object.
+
+        Returns:
+            tuple: (latitude, longitude) or (None, None) on failure
+        """
         coords = self.weather_request.get_coordinate()
         if coords:
             latitude, longitude = coords
@@ -130,6 +181,10 @@ class MapRequest:
             return None, None
         
     def get_map(self):
+        """
+        Embed Google Map in app, centered at the coordinates.
+        Requires Google Maps Embed API Key.
+        """
         latitude, longitude = self.get_coords()
         if not self.__class__.api_key:
             st.error("API key is missing")
@@ -150,9 +205,14 @@ class MapRequest:
         
        
 def display_data_current():
+    """
+    Display current weather information and embedded map
+    based on city and country input.
+    """
     weather_request = WeatherRequest(city,country)
     temp, feels_temp, humidity, weather_desc, icon_code, min_temp, max_temp = weather_request.get_weather()
     map_request = MapRequest(weather_request)
+    
     cols = st.columns(2)
     cols[0].write(f'**Location:** :blue[{city.capitalize()}, {country.capitalize()}]')
     cols[0].write(f'**Temperature:** :blue[{temp}°C]')
@@ -163,19 +223,25 @@ def display_data_current():
     icon_url = f"https://openweathermap.org/img/wn/{icon_code}@2x.png"
     cols[1].write(f'**Weather description:**')
     cols[1].image(icon_url, caption=weather_desc.capitalize())
+    
     map_request.get_map()
     
 def display_data_forcast():
+    """
+    Display a 5-day weather forecast at 12 PM for each day.
+    """
     forecast_request = WeatherRequest(city,country)
     forecast = forecast_request.get_daily_forecast()
     if not forecast:
         st.error("No forecast found.")
         return
     st.write(f'**Location:** :blue[{city.capitalize()}, {country.capitalize()}]')
+    
     header_cols = st.columns([1.5, 2.5, 3])
     header_cols[0].markdown("**Date**")
     header_cols[1].markdown("**Weather Description**")
     header_cols[2].markdown("**Temperatures**")
+    
     for prevision in forecast:
         columns = st.columns([1.5, 2.5, 3])
         columns[0].write(f"**{prevision['date']}**")
@@ -185,6 +251,10 @@ def display_data_forcast():
     
         
 def main():
+    """
+    Entry point for the Streamlit weather app.
+    Captures user input and displays tabs with weather information.
+    """
     global city, country
     
     st.header("Weather application", divider=True)
@@ -193,7 +263,8 @@ def main():
     col = st.columns(2)
     city = col[0].text_input('Name of the city you want to look up: ')
     country = col[1].text_input('Corresponding two-digit country code: ')
-    st.write(f'You can find the official country code following the ISO 3166 at: https://www.iso.org/obp/ui/#search')
+    st.write(f'You can find the official country code following the ISO 3166 at:'
+             'https://www.iso.org/obp/ui/#search')
     
     if st.button('Search'):
         tab1, tab2 = st.tabs(['Current weather', 'Forcast for 5 days'])
