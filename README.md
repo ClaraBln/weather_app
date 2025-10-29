@@ -100,4 +100,4 @@ See the [LICENSE](LICENSE) file for details.
 
 Clara Blanchard – clara-blanchard@live.fr
 
-Project Link: [https://github.com/ClaraBln/weather_app.git](https://github.com/ClaraBln/weather_app.git)
+Project Link: [https://clarablanchard.fr/work/weather_app/](https://clarablanchard.fr/work/weather_app/)
